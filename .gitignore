@@ -1,0 +1,15 @@
+# Ignorar ambientes virtuais
+venv/
+.env/
+
+# Ignorar transcrições e áudios
+transcricoes/
+audio/
+
+# Ignorar arquivos temporários
+__pycache__/
+*.pyc
+*.log
+
+# Ignore o VSCode se você usa
+.vscode/
