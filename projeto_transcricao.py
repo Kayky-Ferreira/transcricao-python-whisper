@@ -1,54 +1,101 @@
-import whisper
+﻿import whisper
 import os
 import customtkinter as ctk
 import tkinter.messagebox as msgbox
 from tkinter import filedialog
 
-# Variáveis que armazenam caminhos e resultados durante o uso da aplicação
+# VariÃ¡veis globais
 caminho = None
 nome_arquivo = None
 texto = None
 
-# Configuração da janela principal da interface (cor, tamanho, título)
+# ConfiguraÃ§Ã£o da janela
 tela = ctk.CTk()
-tela.title("transcrever audio")
+tela.title("Transcrever Ãudio")
 tela.geometry("400x400")
-tela.configure(fg_color = "#FEFAED")
+tela.configure(fg_color="#FEFAED")
 
-# Lista de modelos disponíveis do Whisper para seleção pelo usuário
+# Modelos disponÃ­veis
 lista_models = ["tiny", "base", "small", "medium", "large"]
-opcao_models = ctk.CTkOptionMenu(master= tela, values= lista_models)
-opcao_models.pack(pady = 20)
+opcao_models = ctk.CTkOptionMenu(master=tela, values=lista_models)
+opcao_models.pack(pady=20)
 
-# Funções principais: selecionar arquivo, transcrever e salvar resultado
-# Abre janela para o usuário selecionar o arquivo de áudio
+
+# ==========================
+# Selecionar arquivo
+# ==========================
 def buscar_arquivo():
     global caminho
     global nome_arquivo
-    caminho = filedialog.askopenfilename()
-    nome_arquivo = os.path.basename(caminho)
-    print(f'O arquivo selecionado é: {nome_arquivo}')
 
-# Carrega o modelo escolhido e realiza a transcrição do áudio selecionado
+    caminho = filedialog.askopenfilename(
+        title="Selecione um arquivo",
+        filetypes=[
+            ("Arquivos de Ã¡udio", "*.mp3 *.wav *.m4a *.mp4"),
+            ("Todos os arquivos", "*.*")
+        ]
+    )
+
+    # UsuÃ¡rio cancelou
+    if not caminho:
+        return
+
+    # Verifica extensÃ£o
+    if not caminho.lower().endswith((".mp3", ".wav", ".m4a", ".mp4")):
+        msgbox.showwarning(
+            "Arquivo invÃ¡lido",
+            "Selecione um arquivo MP3, WAV, M4A ou MP4."
+        )
+        caminho = None
+        return
+
+    nome_arquivo = os.path.basename(caminho)
+
+    print(f"Arquivo selecionado: {nome_arquivo}")
+
+
+# ==========================
+# Transcrever
+# ==========================
 def transcrever():
     global caminho
     global texto
-    nome_do_modelo = opcao_models.get()
-    print(f'Carregando o modelo: {nome_do_modelo} ...')
-    # Carrega o modelo selecionado pelo usuário (ex: base, small...)
-    modelo = whisper.load_model(nome_do_modelo)
-    print("Iniciando a transcrição...")
-    texto = modelo.transcribe(caminho)
-    print (f'Transcrição Concluida! \n {texto['text']}')
 
-# Salva o conteúdo transcrito em um arquivo .txt no local escolhido pelo usuário
+    if not caminho:
+        msgbox.showwarning("Aviso", "Selecione um arquivo primeiro.")
+        return
+
+    nome_do_modelo = opcao_models.get()
+
+    print("1 - Carregando modelo")
+    modelo = whisper.load_model(nome_do_modelo)
+
+    print("2 - Modelo carregado")
+
+    print("3 - Iniciando transcriÃ§Ã£o")
+
+    texto = modelo.transcribe(
+        caminho,
+        language="pt",
+        verbose=True
+    )
+
+    print("4 - TranscriÃ§Ã£o finalizada")
+
+    print(texto["text"])
+
+# ==========================
+# Salvar
+# ==========================
 def salvar():
     global nome_arquivo
     global texto
 
-# Verifica se o usuário já selecionou um arquivo e realizou a transcrição
     if nome_arquivo is None or texto is None:
-        msgbox.showerror("Erro ao Salvar", "Por favor, selecione e transcreva um arquivo de áudio primeiro.")
+        msgbox.showerror(
+            "Erro",
+            "Selecione e transcreva um arquivo antes de salvar."
+        )
         return
 
     nome_base, _ = os.path.splitext(nome_arquivo)
@@ -56,7 +103,7 @@ def salvar():
 
     caminho_salvar = filedialog.asksaveasfilename(
         defaultextension=".txt",
-        filetypes=[("Text files", "*.txt")],
+        filetypes=[("Arquivo de Texto", "*.txt")],
         initialfile=nome_salvar
     )
 
@@ -64,25 +111,44 @@ def salvar():
         return
 
     try:
-        with open(caminho_salvar, 'w', encoding='utf-8') as arquivo:
-            arquivo.write(texto['text'])
-        msgbox.showinfo("Sucesso", f"O arquivo foi salvo com sucesso em: {caminho_salvar}")
-    except Exception as e:
-        msgbox.showerror("Erro ao Salvar", f"Ocorreu um erro ao tentar salvar o arquivo: {e}")
+        with open(caminho_salvar, "w", encoding="utf-8") as arquivo:
+            arquivo.write(texto["text"])
 
-# Botões da interface: selecionar, transcrever e salvar
+        msgbox.showinfo(
+            "Sucesso",
+            f"Arquivo salvo com sucesso!\n\n{caminho_salvar}"
+        )
 
-# Botão que abre o seletor de arquivos
-btn_selecionar = ctk.CTkButton(master = tela, text = "Selecione o arquivo", command = buscar_arquivo)
-btn_selecionar.pack(pady = 20)
+    except Exception as erro:
+        msgbox.showerror(
+            "Erro",
+            f"Erro ao salvar:\n\n{erro}"
+        )
 
-# Botão que inicia a transcrição
-btn_transcrever = ctk.CTkButton(master= tela, text = 'transcrever arquivo', command= transcrever)
-btn_transcrever.pack(pady = 20)
 
-# Botão que salva o texto transcrito
-btn_salvar = ctk.CTkButton(master = tela, text = "Salvar", command= salvar)
-btn_salvar.pack(pady = 20)
+# ==========================
+# BotÃµes
+# ==========================
+btn_selecionar = ctk.CTkButton(
+    master=tela,
+    text="Selecionar Arquivo",
+    command=buscar_arquivo
+)
+btn_selecionar.pack(pady=20)
 
-# Inicia o loop principal da interface gráfica
+btn_transcrever = ctk.CTkButton(
+    master=tela,
+    text="Transcrever",
+    command=transcrever
+)
+btn_transcrever.pack(pady=20)
+
+btn_salvar = ctk.CTkButton(
+    master=tela,
+    text="Salvar TranscriÃ§Ã£o",
+    command=salvar
+)
+btn_salvar.pack(pady=20)
+
+# Inicia interface
 tela.mainloop()
